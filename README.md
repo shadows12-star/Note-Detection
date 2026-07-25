@@ -61,11 +61,7 @@ This prints the detections to the console and saves an annotated image to
 
 
 
-<p align="center">
-  <img src="docs/screenshots/01-inference-demo.png" alt="Single image inference demo output" width="700">
-</p>
 
-<!-- Replace docs/screenshots/01-inference-demo.png with your own screenshot -->
 
 
 
@@ -138,8 +134,7 @@ curl -X POST "http://localhost:8000/predict" \
 </p>
 
 
-
-📸 **Screenshot — graceful error handling **
+📸 **Screenshot — Graceful Error Handling**
 
 <p align="center">
 <img width="2138" height="1240" alt="image" src="https://github.com/user-attachments/assets/bbc7df0e-6860-4f52-a890-7d6955da01f8" />
