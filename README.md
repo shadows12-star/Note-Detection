@@ -59,7 +59,7 @@ python notebooks/run_inference_demo.py --image tests/sample_images/note1.jpg
 This prints the detections to the console and saves an annotated image to
 `outputs/annotated.jpg`.
 
-📸 **Screenshot — successful single-image inference (console output + annotated image):**
+
 
 <p align="center">
   <img src="docs/screenshots/01-inference-demo.png" alt="Single image inference demo output" width="700">
@@ -67,17 +67,7 @@ This prints the detections to the console and saves an annotated image to
 
 <!-- Replace docs/screenshots/01-inference-demo.png with your own screenshot -->
 
-### Retraining on the new dataset
 
-Your Phase-1 model needs to be retrained/fine-tuned on the new dataset:
-https://www.kaggle.com/datasets/rahnumatasnim1604103/bangladeshi-banknote-dataset
-
-Open `notebooks/train_phase2.ipynb` (in Colab or any GPU environment) and run
-it top to bottom. It downloads the dataset via the Kaggle API, converts it
-into YOLO format, fine-tunes starting from your Phase-1 `best.pt`, and copies
-the new weights into `models/weights/best.pt`.
-
----
 
 ## 2. REST API
 
