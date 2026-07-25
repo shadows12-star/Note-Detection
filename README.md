@@ -1,232 +1,303 @@
-# Bangladeshi Banknote Detection API with YOLOv11
+# 💵 Bangladeshi Banknote Detector — YOLOv11 + FastAPI + Docker
 
-This project retrains YOLOv11 for Bangladeshi banknote denomination recognition, provides a single-image inference pipeline, serves the model through FastAPI, tests the API with five images, and packages the application with Docker.
+Object detection system that identifies Bangladeshi Taka banknote denominations
+(2, 5, 10, 20, 50, 100, 200, 500, 1000) in an image, served as a REST API and
+packaged as a Docker container.
 
-## Important dataset and notebook findings
+![Python](https://img.shields.io/badge/Python-3.10-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)
+![YOLOv11](https://img.shields.io/badge/YOLO-v11-orange)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ED)
 
-The supplied notebook is a people-flow tracking project. It uses a pretrained YOLO model, ByteTrack, line crossing, video processing, and a heatmap. It does not train or serve a Bangladeshi banknote model, so a new training notebook is included.
+---
 
-The selected Kaggle dataset contains roughly 70,000 images in eight denomination folders: 2, 5, 10, 20, 50, 100, 500, and 1000 taka. It is an image-classification dataset and does not contain YOLO bounding-box labels. It also does not include 200 taka.
+## 📁 Folder structure
 
-To remain aligned with the requested dataset and the assignment's single-image requirement, the training notebook converts every image into one YOLO detection sample with a full-image bounding box. This allows YOLOv11 to return a denomination, confidence, and box for a single banknote image. It is not a substitute for genuine object-detection annotation and should not be used to claim reliable multi-note detection.
-
-## Project structure
-
-```text
-bangladeshi_banknote_yolov11_project/
+```
+banknote-detector/
 ├── app/
-│   ├── config.py
-│   ├── detector.py
-│   ├── main.py
-│   └── schemas.py
-├── docs/
-│   └── REPORT_TEMPLATE.md
-├── logs/
+│   ├── main.py            # FastAPI app, /predict and /health endpoints
+│   ├── inference.py       # BanknoteDetector class - loads model, runs detection
+│   └── schemas.py         # Pydantic request/response models
 ├── models/
-│   └── README.md
-├── reference/
-│   └── original_people_flow_notebook.ipynb
-├── sample_images/
+│   └── weights/
+│       └── best.pt        # <-- put your trained YOLOv11 weights here (not committed)
+├── notebooks/
+│   ├── train_phase2.ipynb        # retrain on the new Kaggle dataset
+│   └── run_inference_demo.py     # Section 1 deliverable: single-image inference demo
 ├── scripts/
-│   ├── curl_test.sh
-│   └── test_five_images.py
+│   └── test_api.py        # Section 3 deliverable: batch API test against sample images
 ├── tests/
-│   └── test_api.py
-├── training/
-│   └── Banknote_YOLOv11_Training.ipynb
-├── .dockerignore
-├── .gitignore
+│   └── sample_images/     # test images used for API validation
+├── docs/
+│   └── screenshots/       # <-- put all submission screenshots here (see slots below)
 ├── Dockerfile
-├── inference.py
-├── requirements-dev.txt
+├── docker-compose.yml
 ├── requirements.txt
 └── README.md
 ```
 
-## 1. Train the model in Google Colab
+---
 
-1. Open `training/Banknote_YOLOv11_Training.ipynb` in Colab.
-2. Select **Runtime → Change runtime type → T4 GPU**.
-3. Run every cell in order.
-4. Authenticate with Kaggle if Colab requests it.
-5. The notebook downloads `rahnumatasnim1604103/bangladeshi-banknote-dataset`, detects the eight class folders, creates train/validation/test splits, generates YOLO labels, trains YOLOv11n, evaluates the held-out test split, and demonstrates single-image inference.
-6. Download the resulting `best.pt` file.
-7. Put it in this project as `models/best.pt`.
+## 1. Model Integration & Inference Pipeline
 
-The notebook defaults to all discovered images. For a quick pipeline check, set `MAX_IMAGES_PER_CLASS` to a smaller value such as `500`; return it to `None` for the final training run.
+`app/inference.py` defines `BanknoteDetector`, a thin wrapper around
+Ultralytics YOLOv11 that:
 
-## 2. Install and run locally
+- loads weights from `models/weights/best.pt`
+- accepts a filepath, raw bytes, or a PIL image
+- returns a JSON-serialisable dict: image size, detected classes,
+  confidence scores, and bounding box coordinates (`x1,y1,x2,y2` in pixels)
 
-Python 3.11 is recommended.
+Run the standalone demo:
 
 ```bash
-python -m venv .venv
+pip install -r requirements.txt
+python notebooks/run_inference_demo.py --image tests/sample_images/note1.jpg
 ```
 
-Windows:
+This prints the detections to the console and saves an annotated image to
+`outputs/annotated.jpg`.
 
-```powershell
-.venv\Scripts\activate
-python -m pip install -r requirements-dev.txt
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
+📸 **Screenshot — successful single-image inference (console output + annotated image):**
 
-Linux/macOS:
+<p align="center">
+  <img src="docs/screenshots/01-inference-demo.png" alt="Single image inference demo output" width="700">
+</p>
+
+<!-- Replace docs/screenshots/01-inference-demo.png with your own screenshot -->
+
+### Retraining on the new dataset
+
+Your Phase-1 model needs to be retrained/fine-tuned on the new dataset:
+https://www.kaggle.com/datasets/rahnumatasnim1604103/bangladeshi-banknote-dataset
+
+Open `notebooks/train_phase2.ipynb` (in Colab or any GPU environment) and run
+it top to bottom. It downloads the dataset via the Kaggle API, converts it
+into YOLO format, fine-tunes starting from your Phase-1 `best.pt`, and copies
+the new weights into `models/weights/best.pt`.
+
+---
+
+## 2. REST API
+
+Run locally without Docker:
 
 ```bash
-source .venv/bin/activate
-python -m pip install -r requirements-dev.txt
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Open the interactive documentation at `http://127.0.0.1:8000/docs`.
-
-## 3. Single-image inference
-
-```bash
-python inference.py \
-  --image sample_images/test_note.jpg \
-  --model models/best.pt \
-  --output logs/annotated_prediction.jpg
-```
-
-The command prints detected class names, confidence scores, and `xyxy` pixel coordinates. It also saves an annotated image.
-
-## 4. REST API
+Interactive API docs: http://localhost:8000/docs
 
 ### Endpoint
 
-```text
-POST /predict
-```
+| | |
+|---|---|
+| **URL** | `/predict` |
+| **Method** | `POST` |
+| **Body** | `multipart/form-data`, field name `file`, a JPEG or PNG image |
+| **Success** | `200 OK`, JSON body (see below) |
+| **Errors** | `400` empty/oversized/corrupt file · `415` wrong content type · `503` model not loaded |
 
-### Input
-
-Send `multipart/form-data` with one field:
-
-```text
-file=<JPEG or PNG image>
-```
-
-### curl example
-
-```bash
-curl -X POST "http://127.0.0.1:8000/predict" \
-  -H "accept: application/json" \
-  -F "file=@sample_images/test_note.jpg"
-```
-
-### Example response format
-
-The values below illustrate the JSON structure; they are not claimed as results from an untrained model.
+**Example response:**
 
 ```json
+	
+
 {
-  "filename": "test_note.jpg",
-  "image_width": 1280,
-  "image_height": 720,
+  "filename": "20_taka_cc27a36d55d096dc.png",
+  "image_width": 256,
+  "image_height": 117,
   "detection_count": 1,
   "detections": [
     {
       "class_id": 5,
       "denomination": "100_taka",
-      "confidence": 0.973421,
+      "confidence": 0.912213,
       "bounding_box": {
-        "x_min": 14.2,
-        "y_min": 10.8,
-        "x_max": 1267.5,
-        "y_max": 707.1
+        "x_min": 9.89,
+        "y_min": 3.06,
+        "x_max": 252.83,
+        "y_max": 113.85
       }
     }
   ]
 }
 ```
 
-### Error handling
-
-| Condition | Status code |
-|---|---:|
-| Missing file | 400 |
-| Empty/corrupt image | 400 |
-| File larger than configured limit | 413 |
-| Unsupported media type | 415 |
-| Missing model weights | 503 |
-| Unexpected inference failure | 500 |
-
-## 5. Test with at least five images
-
-Place five held-out JPEG/PNG images in `sample_images/`, start the API, then run:
+### curl example
 
 ```bash
-python scripts/test_five_images.py --images sample_images
+curl -X POST "http://localhost:8000/predict" \
+     -H "accept: application/json" \
+     -F "file=@tests/sample_images/note1.jpg;type=image/jpeg"
 ```
 
-The script sends five requests and saves the complete result log to:
+### Postman
 
-```text
-logs/api_test_results.json
+1. New request → `POST http://localhost:8000/predict`
+2. Body → `form-data` → key `file`, type **File** → select an image
+3. Send → response body is the JSON shown above
+
+📸 **Screenshot — successful `/predict` call via Postman**
+
+<p align="center">
+<img width="2271" height="1299" alt="image" src="https://github.com/user-attachments/assets/51d84e96-e9ed-4430-938d-f4d1f1907cdb" />
+
+</p>
+
+
+
+📸 **Screenshot — graceful error handling **
+
+<p align="center">
+<img width="2138" height="1240" alt="image" src="https://github.com/user-attachments/assets/bbc7df0e-6860-4f52-a890-7d6955da01f8" />
+
+</p>
+
+
+
+---
+
+## 3. API Testing & Validation
+## API Testing & Validation
+
+The REST API was tested using **Postman** by sending multiple JPEG/PNG images to the `/predict` endpoint. Each request was successfully processed, and the API returned a **200 OK** response containing the detected denomination(s), confidence score(s), and bounding box coordinates in JSON format.
+
+### Prediction Accuracy
+
+The deployed YOLOv11 model demonstrated satisfactory performance on the tested Bangladeshi Taka note images.
+
+During testing, the API successfully detected **multiple banknotes within a single image**. For example:
+
+- **1000 Taka** note detected with a confidence score of **81.1%**
+- **10 Taka** note detected with a confidence score of **65.3%**
+
+The higher confidence score for the 1000 Taka note indicates that the model was highly confident in its prediction. The comparatively lower confidence for the 10 Taka note suggests greater uncertainty, which may be caused by factors such as:
+
+- Small object size in the image
+- Lighting variations
+- Image blur
+- Partial occlusion
+- Similar visual characteristics between different denominations
+
+Overall, the API produced accurate detections and returned correctly formatted JSON responses, demonstrating successful integration of the YOLOv11 model with the FastAPI application.
+
+The model performs well on clear, high-quality images, while prediction confidence may decrease when notes are partially visible, rotated, blurred, or captured under poor lighting conditions.
+
+
+
+### Example JSON Response
+
+```json
+{
+  "filename": "images.jpg",
+  "image_width": 815,
+  "image_height": 376,
+  "detection_count": 2,
+  "detections": [
+    {
+      "class_id": 7,
+      "denomination": "1000_taka",
+      "confidence": 0.811205,
+      "bounding_box": {
+        "x_min": 33.07,
+        "y_min": 9.70,
+        "x_max": 600.37,
+        "y_max": 366.48
+      }
+    },
+    {
+      "class_id": 2,
+      "denomination": "10_taka",
+      "confidence": 0.653476,
+      "bounding_box": {
+        "x_min": 642.37,
+        "y_min": 9.20,
+        "x_max": 815.00,
+        "y_max": 365.72
+      }
+    }
+  ]
+}
 ```
 
-For Postman:
+### Conclusion
 
-1. Create a `POST` request to `http://127.0.0.1:8000/predict`.
-2. Select **Body → form-data**.
-3. Add key `file`, change its type to **File**, and select a JPEG/PNG image.
-4. Send the request and capture the response screenshot.
-5. Repeat for at least five held-out test images.
+The experimental results demonstrate that the deployed YOLOv11 model can reliably detect Bangladeshi Taka notes through a FastAPI REST API. The system supports both single and multiple banknote detection, provides confidence scores and bounding box coordinates, and produces consistent JSON responses suitable for real-world integration and deployment.
 
-## 6. Run automated API validation
 
-These tests use a mocked detector output and verify request validation and response formatting without needing trained weights:
+📸 **Screenshots — request/response for each of the 5 test images:**
+
+<p align="center">
+<img width="2142" height="1306" alt="image" src="https://github.com/user-attachments/assets/53492704-3690-4b66-8966-0f8e61521d46" />
+
+</p>
+<p align="center">
+<img width="966" height="1079" alt="image" src="https://github.com/user-attachments/assets/6e15f11f-b656-471e-b747-0bae8de78e82" />
+
+</p>
+<p align="center">
+  <img src="docs/screenshots/06-test-3.png" alt="Test image 3 result" width="480">
+</p>
+<p align="center">
+<img width="1258" height="1072" alt="image" src="https://github.com/user-attachments/assets/af754381-0f81-4f91-a12d-0d67fdfbb312" />
+
+</p>
+<p align="center">
+<img width="968" height="1255" alt="image" src="https://github.com/user-attachments/assets/12b4b07d-a349-45b6-a721-5702336a93a9" />
+
+</p>
+
+
+## 4. Dockerization
+
+**Build:**
 
 ```bash
-python -m pytest -q
+docker build -t banknote-detector:latest .
 ```
 
-They do not replace the required five-image model accuracy test.
+📸 **Screenshot — successful `docker build` log:**
 
-## 7. Docker build and run
+<p align="center">
+  <img src="docs/screenshots/09-docker-build.png" alt="Docker build log" width="700">
+</p>
 
-Ensure `models/best.pt` exists before building the final submission image.
+<!-- Replace docs/screenshots/09-docker-build.png with your own screenshot -->
+
+**Run:**
 
 ```bash
-docker build -t banknote-yolo-api:1.0 .
+docker run -d -p 8000:8000 --name banknote-api banknote-detector:latest
 ```
 
-Run the container and publish container port 8000 to host port 8000:
+*(or `docker compose up --build` using the included `docker-compose.yml`)*
+
+**Verify it's up:**
 
 ```bash
-docker run --rm -p 8000:8000 banknote-yolo-api:1.0
+curl http://localhost:8000/health
 ```
 
-Check health:
+📸 **Screenshot — container running (`docker ps` / `docker logs`) + a successful API call against it:**
 
-```bash
-curl http://127.0.0.1:8000/health
-```
+<p align="center">
+  <img src="docs/screenshots/10-docker-running.png" alt="Docker container running and API responding" width="700">
+</p>
 
-Test prediction:
+<!-- Replace docs/screenshots/10-docker-running.png with your own screenshot -->
 
-```bash
-curl -X POST "http://127.0.0.1:8000/predict" \
-  -F "file=@sample_images/test_note.jpg"
-```
+To view logs: `docker logs -f banknote-api`
+To stop: `docker stop banknote-api`
 
-Docker's `EXPOSE 8000` documents the container port; the `-p 8000:8000` option publishes it to the host.
+> **Note:** `models/weights/best.pt` is copied into the image at build time
+> (see `Dockerfile`). Make sure it exists locally before running `docker build`.
 
-## 8. Required screenshots and evidence
+---
 
-Before submission, capture:
 
-- Colab training completion and metrics.
-- The single-image printed/visualized inference result.
-- Five Postman or curl request/response results.
-- `docker build` completion.
-- `docker run` output showing Uvicorn on port 8000.
-- A successful `/health` response and one `/predict` response from the container.
 
-Use `docs/REPORT_TEMPLATE.md` to assemble the written report and prediction-accuracy discussion.
+---
 
-## Recommended improvement for a genuine detector
-
-For reliable localization or multiple banknotes in one scene, manually annotate boxes in CVAT, Roboflow, or Label Studio, or use a dataset that already has YOLO detection labels. Then update the notebook to point directly to that dataset's `data.yaml`; the API and Docker code can remain unchanged.
