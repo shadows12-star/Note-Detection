@@ -259,21 +259,12 @@ The experimental results demonstrate that the deployed YOLOv11 model can reliabl
 docker build -t banknote-detector:latest .
 ```
 
-📸 **Screenshot — successful `docker build` log:**
-
-<p align="center">
-  <img src="docs/screenshots/09-docker-build.png" alt="Docker build log" width="700">
-</p>
-
-<!-- Replace docs/screenshots/09-docker-build.png with your own screenshot -->
-
 **Run:**
 
 ```bash
 docker run -d -p 8000:8000 --name banknote-api banknote-detector:latest
 ```
 
-*(or `docker compose up --build` using the included `docker-compose.yml`)*
 
 **Verify it's up:**
 
@@ -284,7 +275,12 @@ curl http://localhost:8000/health
 📸 **Screenshot — container running (`docker ps` / `docker logs`) + a successful API call against it:**
 
 <p align="center">
-  <img src="docs/screenshots/10-docker-running.png" alt="Docker container running and API responding" width="700">
+	<img width="1592" height="912" alt="image" src="https://github.com/user-attachments/assets/2bc5964e-3bae-4adc-a244-1c2d1220348b" />
+	<img width="1127" height="972" alt="image" src="https://github.com/user-attachments/assets/2cdd0640-e985-4a23-8765-e1868770503c" />
+
+
+  <img width="1587" height="922" alt="image" src="https://github.com/user-attachments/assets/3238fa79-7abf-4f2c-8b7a-15f150a187eb" />
+
 </p>
 
 <!-- Replace docs/screenshots/10-docker-running.png with your own screenshot -->
@@ -292,12 +288,5 @@ curl http://localhost:8000/health
 To view logs: `docker logs -f banknote-api`
 To stop: `docker stop banknote-api`
 
-> **Note:** `models/weights/best.pt` is copied into the image at build time
-> (see `Dockerfile`). Make sure it exists locally before running `docker build`.
 
----
-
-
-
----
 
