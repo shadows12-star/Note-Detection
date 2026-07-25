@@ -10,6 +10,34 @@ packaged as a Docker container.
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED)
 
 ---
+## 📖 About the project
+
+This project detects and identifies Bangladeshi Taka banknotes (2, 5, 10, 20,
+50, 100, 200, 500, and 1000 Taka) from an image using a custom-trained
+YOLOv11 object detection model. It started as a Phase-1 training exercise and
+was extended into a full deployable system: the trained model is wrapped in
+a reusable inference pipeline, served through a REST API, tested against
+real sample images, and containerized with Docker so it can run identically
+on any machine. Given a photo of a note, the API returns the predicted
+denomination, a confidence score, and the bounding box around the detected
+note — making it usable as a backend for things like assistive currency
+recognition, point-of-sale automation, or counting/sorting tools.
+
+## 🛠️ Technologies used
+
+| Category | Technology |
+|---|---|
+| Object detection model | YOLOv11 (Ultralytics) |
+| Model runtime | PyTorch |
+| API framework | FastAPI |
+| ASGI server | Uvicorn |
+| Data validation | Pydantic |
+| Image processing | Pillow, NumPy |
+| API testing | Postman, curl, Python `requests` |
+| Containerization | Docker, Docker Compose |
+| Base image | `python:3.10-slim` |
+| Language | Python 3.10 |
+| Dataset | [Bangladeshi Banknote Dataset (Kaggle)](https://www.kaggle.com/datasets/rahnumatasnim1604103/bangladeshi-banknote-dataset) |
 
 ## 📁 Folder structure
 
@@ -146,7 +174,6 @@ curl -X POST "http://localhost:8000/predict" \
 ---
 
 ## 3. API Testing & Validation
-## API Testing & Validation
 
 The REST API was tested using **Postman** by sending multiple JPEG/PNG images to the `/predict` endpoint. Each request was successfully processed, and the API returned a **200 OK** response containing the detected denomination(s), confidence score(s), and bounding box coordinates in JSON format.
 
@@ -169,7 +196,7 @@ The higher confidence score for the 1000 Taka note indicates that the model was 
 
 Overall, the API produced accurate detections and returned correctly formatted JSON responses, demonstrating successful integration of the YOLOv11 model with the FastAPI application.
 
-The model performs well on clear, high-quality images, while prediction confidence may decrease when notes are partially visible, rotated, blurred, or captured under poor lighting conditions.
+During testing, the model correctly identified most banknotes used in the evaluation images. Prediction confidence varied depending on image quality, lighting conditions, viewing angle, and the visibility of the banknotes. Images containing multiple notes were also processed successfully.
 
 
 
